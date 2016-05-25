@@ -1,0 +1,20 @@
+doctype html
+html(lang='en')
+  head
+    title This is the auth flow code for spotify
+    link(rel="stylesheet", href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css")
+  body
+    .container
+      #login
+        h1 This is an example of the Authorization Code Flow
+        a.btn.btn-primary(href='/login') Log in with Spotify
+      #loggedin
+        #user-profile
+        #oauth
+        button#obtain-new-token.btn.btn-default Obtain new token using the refresh token
+      #myInfo
+        a.btn(href='/myinfo') Already Signed in? Check Info collected
+
+
+    //- script.
+    //-   var data=!{JSON.stringify(data)};
