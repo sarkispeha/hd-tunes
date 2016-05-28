@@ -2,7 +2,9 @@ var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser')
 var redis = require('redis');
+const mongoose = require('mongoose');
 
 
 // var client_id = process.env.SPOTIFY_CLIENT_ID
@@ -11,6 +13,9 @@ var client_id = '';
 var client_secret = '';
 var redirect_uri = 'http://localhost:8888/callback';
 
+
+//controllers
+var apiController = require('./controllers/api.js');
 //connect to redis
 if (process.env.REDISGREEN_URL != null) {
   redisgreen = require("url").parse(process.env.REDISGREEN_URL);
@@ -19,7 +24,8 @@ if (process.env.REDISGREEN_URL != null) {
 } else {
   redisClient = redis.createClient();
 }
-
+//connect to Mongo
+mongoose.connect(process.env.MONGOLAB_URI || 'mongodb://localhost/spotifydb');
 
 
 var generateRandomString = function(length) {
@@ -39,7 +45,8 @@ app.set('view engine', 'jade');
 app.set('views', __dirname + '/views');
 
 app.use(express.static(__dirname + '/public'))
-   .use(cookieParser());
+   .use(cookieParser())
+   .use(bodyParser.json())
 
 app.get('/', (req, res) =>{
 	res.render('index')
@@ -108,6 +115,7 @@ app.get('/callback', function(req, res) {
     request.post(authOptions, function(error, response, body) {
 
     	var myInfoArr = [];
+    	var authInfoObj = {};
 
       if (!error && response.statusCode === 200) {
 
@@ -125,10 +133,26 @@ app.get('/callback', function(req, res) {
           // console.log('me ', body);
           myInfoArr.push(body);
           //SAVE USERNAME WITH ACCESS TOKEN AND REFRESH TO REDIS
-
+          authInfoObj.user = body.id;
+          authInfoObj.access_token = access_token;
+          authInfoObj.refresh_token = refresh_token;
+          redisClient.set(authInfoObj.user, JSON.stringify(authInfoObj))
+          console.log('stringifyed authInfoObj', JSON.stringify(authInfoObj))
 
           redisClient.set('usernames', body.id)
           // res.render('myinfo', {data : body});
+          request.post({
+          	url: '/api/addUser',
+          	form:{
+          		username : authInfoObj.user
+          	} },
+          	function(error, response, body){
+	          	if(error){
+	          		console.log(error)
+	          	}else{
+          			console.log('this is the post of Username ', response)
+          		}
+          	})
         });
 
         var playlistOptions = {
@@ -190,5 +214,8 @@ app.get('/refresh_token', function(req, res) {
   });
 });
 
-console.log('Listening on 8888');
+//API routes
+app.post('/api/addUser', apiController.addUser);
+
+console.log(new Date(), 'Listening on 8888');
 app.listen(8888);

@@ -4,8 +4,8 @@ html(lang='en')
 		title This is the auth flow code for spotify
 		link(rel="stylesheet", href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css")
 	body
-		p username : #{data[0].id}
-		p number of tracks : #{data[1].total}
+		//- p username : #{data[0].id}
+		p number of tracks : #{data.total}
 		a(href='/') go home
 		br
 		a(href='/login') re login
