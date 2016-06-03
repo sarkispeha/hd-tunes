@@ -4,13 +4,15 @@ var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser')
 var redis = require('redis');
-const mongoose = require('mongoose');
+var mongoose = require('mongoose');
 
 
 // var client_id = process.env.SPOTIFY_CLIENT_ID
-var client_id = '';
+var keys = {
+  client_id : '59cf69d14f744a93a0d83408c52bd6c6',
+  client_secret : '8a991f3620254d36a1c6778edf3adff6'
+}
 // var client_secret = process.env.SPOTIFY_CLIENT_SECRET
-var client_secret = '';
 var redirect_uri = 'http://localhost:8888/callback';
 
 
@@ -47,6 +49,7 @@ app.set('views', __dirname + '/views');
 app.use(express.static(__dirname + '/public'))
    .use(cookieParser())
    .use(bodyParser.json())
+   .use(bodyParser.urlencoded({extended: false}))
 
 app.get('/', (req, res) =>{
 	res.render('index')
@@ -75,7 +78,7 @@ app.get('/login', function(req, res) {
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
       response_type: 'code',
-      client_id: client_id,
+      client_id: keys.client_id,
       scope: scope,
       redirect_uri: redirect_uri,
       state: state,
@@ -107,7 +110,7 @@ app.get('/callback', function(req, res) {
         grant_type: 'authorization_code'
       },
       headers: {
-        'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
+        'Authorization': 'Basic ' + (new Buffer(keys.client_id + ':' + keys.client_secret).toString('base64'))
       },
       json: true
     };
@@ -142,15 +145,18 @@ app.get('/callback', function(req, res) {
           redisClient.set('usernames', body.id)
           // res.render('myinfo', {data : body});
           request.post({
-          	url: '/api/addUser',
+          	url: 'http://localhost:8888/api/addUser',
           	form:{
-          		username : authInfoObj.user
+          		username : authInfoObj.user,
+              access_token : authInfoObj.access_token,
+              refresh_token : authInfoObj.refresh_token
           	} },
           	function(error, response, body){
 	          	if(error){
 	          		console.log(error)
 	          	}else{
-          			console.log('this is the post of Username ', response)
+                console.log('THIS IS THE OBJ.id', authInfoObj.user)
+          			console.log('this is the body of Username ', body)
           		}
           	})
         });
@@ -196,7 +202,7 @@ app.get('/refresh_token', function(req, res) {
   var refresh_token = req.query.refresh_token;
   var authOptions = {
     url: 'https://accounts.spotify.com/api/token',
-    headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
+    headers: { 'Authorization': 'Basic ' + (new Buffer(keys.client_id + ':' + keys.client_secret).toString('base64')) },
     form: {
       grant_type: 'refresh_token',
       refresh_token: refresh_token
@@ -216,6 +222,7 @@ app.get('/refresh_token', function(req, res) {
 
 //API routes
 app.post('/api/addUser', apiController.addUser);
+
 
 console.log(new Date(), 'Listening on 8888');
 app.listen(8888);
